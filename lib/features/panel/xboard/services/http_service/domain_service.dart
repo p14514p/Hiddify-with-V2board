@@ -7,7 +7,7 @@ class DomainService {
   static const String ossDomain =
       'https://bob-1327268024.cos.ap-shanghai.myqcloud.com/websites.json';
 
-// 从返回的 JSON 中挑选一个可以正常访问的域名
+  // 从返回的 JSON 中挑选一个域名
   static Future<String> fetchValidDomain() async {
     try {
       final response = await http
@@ -16,18 +16,19 @@ class DomainService {
       if (response.statusCode == 200) {
         final List<dynamic> websites =
             json.decode(response.body) as List<dynamic>;
-        for (final website in websites) {
+        
+        // 直接返回第一个域名
+        if (websites.isNotEmpty) {
           final Map<String, dynamic> websiteMap =
-              website as Map<String, dynamic>;
+              websites[0] as Map<String, dynamic>;
           final String domain = websiteMap['url'] as String;
-          if (await _checkDomainAccessibility(domain)) {
-            if (kDebugMode) {
-              print('Valid domain found: $domain');
-            }
-            return domain;
+          if (kDebugMode) {
+            print('Domain found: $domain');
           }
+          return domain;
+        } else {
+          throw Exception('No domains found in the list.');
         }
-        throw Exception('No accessible domains found.');
       } else {
         throw Exception(
             'Failed to fetch websites.json: $ossDomain ${response.statusCode}');
@@ -37,18 +38,6 @@ class DomainService {
         print('Error fetching valid domain: $ossDomain:  $e');
       }
       rethrow;
-    }
-  }
-
-  static Future<bool> _checkDomainAccessibility(String domain) async {
-    try {
-      final response = await http
-          .get(Uri.parse(domain))
-          .timeout(const Duration(seconds: 15));
-
-      return response.statusCode == 200;
-    } catch (e) {
-      return false;
     }
   }
 }
