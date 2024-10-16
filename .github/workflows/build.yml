@@ -68,7 +68,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - name: checkout
+      - name: Checkout
         uses: actions/checkout@v3
 
       - name: Setup Flutter
@@ -77,6 +77,13 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
+
+      - name: Debug Environment Variables
+        run: |
+          echo "FLUTTER_VERSION: ${{ env.FLUTTER_VERSION }}"
+          echo "NDK_VERSION: ${{ env.NDK_VERSION }}"
+          echo "UPLOAD_ARTIFACT: ${{ env.UPLOAD_ARTIFACT }}"
+          echo "TAG_NAME: ${{ env.TAG_NAME }}"
 
       - name: Setup Java
         if: startsWith(matrix.platform,'android')
@@ -94,7 +101,7 @@ jobs:
           add-to-path: true
           link-to-sdk: true
 
-      - name: Setup Gradle 8.1
+      - name: Setup Gradle
         if: startsWith(matrix.platform,'android')
         uses: gradle/actions/setup-gradle@v3
         with:
@@ -102,10 +109,12 @@ jobs:
 
       - name: Setup dependencies
         run: |
+          set -x  # 开启调试
           make ${{ matrix.platform }}-install-dependencies
 
       - name: Prepare for ${{ matrix.platform }}
         run: |
+          set -x  # 开启调试
           make ${{ matrix.platform }}-prepare
           tree
 
@@ -113,7 +122,8 @@ jobs:
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
-          make ${{ matrix.platform }}-release
+          set -x  # 开启调试
+          make ${{ matrix.platform }}-release || { echo "Build failed"; exit 1; }
 
       - name: Copy to out Android APK
         if: matrix.platform == 'android-apk'
@@ -125,18 +135,6 @@ jobs:
           cp ./build/app/outputs/flutter-apk/*x86_64*.apk out/${TARGET_NAME_apk}-x86_64.apk || echo "no x64 apk"
           cp ./build/app/outputs/flutter-apk/app-release.apk out/${TARGET_NAME_apk}-universal.apk || echo "no universal apk"
 
-      - name: Copy to out Windows
-        if: matrix.platform == 'windows'
-        run: |
-          tree
-          .\scripts\package_windows.ps1
-
-      - name: Copy to out MacOS
-        if: matrix.platform == 'macos'
-        run: |
-          # 这里可以添加 MacOS 的复制逻辑
-          echo "Copying to out for MacOS"
-
       - name: Upload Artifact
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@v4
@@ -145,18 +143,13 @@ jobs:
           path: ./out
           retention-days: 1
 
-      - name: Clean up keychain and provisioning profile
-        if: ${{ always() && startsWith(matrix.os,'macos')}}
-        run: |
-          rm ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision ||echo ok
-
   update-draft:
     permissions: write-all
     if: ${{ inputs.upload-artifact }}
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
+      - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -178,7 +171,7 @@ jobs:
           tag: 'draft'
           deleteOnlyFromDrafts: false
           
-      - name: prepare_release_message
+      - name: Prepare Release Message
         run: |
           pip install gitchangelog pystache mustache markdown
           prelease=$(curl --silent "https://api.github.com/repos/hiddify/hiddify-next/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
@@ -204,7 +197,7 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
+      - name: Checkout
         uses: actions/checkout@v3
 
       - name: Download Artifact
@@ -221,6 +214,6 @@ jobs:
           ls -R ./.git/
           mv out/hiddify-android-market.aab  hiddify-android-market.aab
 
-      - name: prepare_release_message
+      - name: Prepare Release Message
         run: |
           sed 's|RELEASE_TAG|${{ env.TAG_NAME }}|g' ./.github/release_message.md >> release.md
