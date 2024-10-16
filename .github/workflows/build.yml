@@ -69,24 +69,6 @@ jobs:
         run: |
           make windows-release
 
-      - name: Setup Windows Signing Properties
-        if: ${{ inputs.upload-artifact }}
-        run: |
-            [IO.File]::WriteAllBytes("windows\\sign.pfx", [Convert]::FromBase64String("${{ secrets.WINDOWS_SIGNING_KEY }}"))
-            (Get-Content "windows\\packaging\\msix\\make_config.yaml") -replace '^certificate_password:.*$', 'certificate_password: ${{ secrets.WINDOWS_SIGNING_PASSWORD }}' | Set-Content "windows\\packaging\\msix\\make_config.yaml"
-
-      - name: Code Sign
-        if: ${{ inputs.upload-artifact }}
-        uses: hiddify/signtool-code-sign-sha256@main
-        with:
-          certificate: '${{ secrets.WINDOWS_SIGNING_KEY }}'
-          cert-password: '${{ secrets.WINDOWS_SIGNING_PASSWORD }}'
-          cert-sha1: '${{ secrets.WINDOWS_SIGNING_SHA1 }}'
-          folder: 'dist'
-          timestamp-server: 'http://timestamp.digicert.com'
-          recursive: true
-          description: 'Hiddify'
-
       - name: Copy to out Windows
         run: |
           tree
