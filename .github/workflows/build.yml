@@ -19,6 +19,7 @@ env:
   FLUTTER_VERSION: '3.24.0'
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   TAG_NAME: "${{ inputs.tag-name }}"
+  TARGET_NAME_apk: "Hiddify-Android"
   TARGET_NAME_exe: "Hiddify-Windows-x64"
 
 jobs:
@@ -43,12 +44,12 @@ jobs:
         id: draftBuildCode
         run: echo "::set-output name=datetime::$(date +'%d.%H.%M')"
 
-  build:
+  build_apk:
     needs: test
     permissions: write-all
-    runs-on: windows-2019
+    runs-on: ubuntu-latest
     steps:
-      - name: checkout
+      - name: Checkout
         uses: actions/checkout@v3
 
       - name: Setup Flutter
@@ -58,12 +59,56 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Prepare for windows
+      - name: Install Dependencies
+        run: |
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+          dart run slang
+
+      - name: Prepare for Android
+        run: |
+          make android-prepare
+          tree
+
+      - name: Build APK
+        run: |
+          flutter build apk --release
+
+      - name: Upload APK Artifact
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: build/app/outputs/flutter-apk/*.apk
+          retention-days: 1
+
+  build_windows:
+    needs: test
+    permissions: write-all
+    runs-on: windows-2019
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2.16.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: |
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+          dart run slang
+
+      - name: Prepare for Windows
         run: |
           make windows-prepare
           tree
 
-      - name: Build windows
+      - name: Build Windows
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
@@ -74,7 +119,7 @@ jobs:
           tree
           .\\scripts\\package_windows.ps1
           
-      - name: Upload Artifact
+      - name: Upload Windows Artifact
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@v4
         with:
