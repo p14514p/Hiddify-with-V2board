@@ -28,7 +28,6 @@ env:
   TARGET_NAME_dmg: "Hiddify-MacOS"
   TARGET_NAME_pkg: "Hiddify-MacOS-Installer"
   TARGET_NAME_ipa: "Hiddify-iOS"
-  
 
 jobs:
   test:
@@ -52,7 +51,6 @@ jobs:
         id: draftBuildCode
         run: echo "::set-output name=datetime::$(date +'%d.%H.%M')"
 
-
   build:
     needs: test
     permissions: write-all
@@ -63,10 +61,6 @@ jobs:
           - platform: android-apk
             os: ubuntu-latest
             targets: apk
-
-          - platform: android-aab
-            os: ubuntu-latest
-            targets: aab
 
           - platform: windows
             os: windows-2019
@@ -93,41 +87,20 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
 
-      - name: Import Apple Codesign Certificates
-        if: ${{ inputs.upload-artifact && startsWith(matrix.os,'macos') }}
-        uses: apple-actions/import-codesign-certs@v3
-        with: 
-            p12-file-base64: "${{ secrets.APPLE_CERTIFICATE_P12 }}"
-            p12-password: "${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}"
-
-      - name: Import Apple Mobile Provisioning Profile
-        if: ${{ inputs.upload-artifact && startsWith(matrix.os,'macos') }}
-        run: |
-           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-           echo "${{secrets.APPLE_MOBILE_PROVISIONING_PROFILES_TARGZ_BASE64}}"|base64 --decode | tar xz -C ~/Library/MobileDevice/Provisioning\ Profiles
-           ls ~/Library/MobileDevice/Provisioning\ Profiles
-        #   ls ~/Library/MobileDevice/Provisioning\ Profiles
-        #   echo "${{secrets.NEW_APPLE_MOBILE_PROVISIONING_PROFILES_TARXZ_BASE64}}"|base64 --decode | tar xJ -C ~/Library/MobileDevice/Provisioning\ Profiles
-        #   # echo "${{secrets.NEW_APPLE_MOBILE_PROVISIONING_PROFILES_TARGZ_BASE64_2}}"|base64 --decode | tar xz -C ~/Library/MobileDevice/Provisioning\ Profiles
-          
-
-
-      
       - name: Setup Flutter
         uses: subosito/flutter-action@v2.16.0 #issue with 2.13
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
-          # flutter-version-file: pubspec.yaml
           channel: 'stable'
           cache: true
 
-      
       - name: Setup Java
         if: startsWith(matrix.platform,'android')
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: 17
+
       - name: Setup NDK
         if: startsWith(matrix.platform,'android')
         uses: nttld/setup-ndk@v1
@@ -142,55 +115,28 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 7.5
+
       - name: Setup dependencies
         run: |
           make ${{ matrix.platform }}-install-dependencies
-
-
-        
-      # - name: Temporary disable Permission Handler for windows due to its issue in permission
-      #   if: ${{ startsWith(matrix.platform,'windows') }}
-      #   run: |
-      #     (Get-Content -Path "pubspec.yaml") -notmatch "permission_handler" | Set-Content -Path "pubspec.yaml"
-      #     (Get-Content -Path "lib\features\profile\add\add_profile_modal.dart") -notmatch "qr_code_scanner_screen" | Set-Content -Path "lib\features\profile\add\add_profile_modal.dart"
-      #     (Get-Content -Path lib\features\profile\add\add_profile_modal.dart) -replace 'await QRCodeScannerScreen\(\).open\(context\);', 'null;' | Set-Content -Path lib\features\profile\add\add_profile_modal.dart
-      #     Remove-Item -Path "lib\features\common\qr_code_scanner_screen.dart"
-
-
-
 
       - name: Prepare for ${{ matrix.platform }}
         run: |
           make ${{ matrix.platform }}-prepare
           tree
+
       - name: Build ${{ matrix.platform }}
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           make ${{ matrix.platform }}-release
 
-
       - name: Copy to out Windows
         if: matrix.platform == 'windows'
         run: |
           tree
           .\scripts\package_windows.ps1
-          
-          
-      - name: Upload Debug Symbols
-        if: ${{ inputs.upload-artifact && inputs.tag-name != 'draft' }}
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-          SENTRY_DIST: ${{ matrix.platform == 'android-aab' && 'google-play' || 'general' }}
-        run: |
-          dart pub global activate sentry_dart_plugin
-          dart run sentry_dart_plugin 
-      
-      
 
-              
       - name: Copy to out Android APK
         if: matrix.platform == 'android-apk'
         run: |
@@ -200,7 +146,6 @@ jobs:
           cp ./build/app/outputs/flutter-apk/*armeabi-v7a*.apk out/${TARGET_NAME_apk}-arm7.apk || echo "no arm7 apk"
           cp ./build/app/outputs/flutter-apk/*x86_64*.apk out/${TARGET_NAME_apk}-x86_64.apk || echo "no x64 apk"
           cp ./build/app/outputs/flutter-apk/app-release.apk out/${TARGET_NAME_apk}-universal.apk || echo "no universal apk"
-
 
       - name: Copy to out unix
         if: startsWith(matrix.platform,'linux') || matrix.platform == 'macos' || matrix.platform == 'ios'
@@ -226,9 +171,6 @@ jobs:
               mv tmp_out/${FILENAME}.$EXT out/
             else
               cd tmp_out
-              # 7z a ${FILENAME}.zip ./
-              # mv ${FILENAME}.zip ../out/
-              # [[ $EXT == 'AppImage' ]]&& mv ${FILENAME}.$EXT ../out/ # added for appimage link
               mv ${FILENAME}.$EXT ../out/
               cd ..
             fi
@@ -245,8 +187,8 @@ jobs:
       - name: Clean up keychain and provisioning profile
         if: ${{ always() && startsWith(matrix.os,'macos')}}
         run: |
-          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db ||echo ok
           rm ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision ||echo ok
+
   update-draft:
     permissions: write-all
     if: ${{ inputs.upload-artifact }}
@@ -256,8 +198,6 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
         with:
-          # by default, it uses a depth of 1
-          # this fetches all history so that we can read each commit
           fetch-depth: 0
       - name: Download Artifact
         uses: actions/download-artifact@v4
@@ -266,7 +206,6 @@ jobs:
           pattern: "*"
           path: ./out/
           
-
       - name: Display Files Structure
         run: ls -R
         working-directory: ./out
@@ -285,7 +224,7 @@ jobs:
           current="${{ github.ref_name }}"
           sed 's|RELEASE_TAG|${{ env.TAG_NAME }}|g' ./.github/release_message.md > release.md
           echo -e "\n\n<details markdown=1><summary>All changes from $current to the latest commit:</summary>\n\n">>release.md
-          gitchangelog "${prelease}.." >> release.md  2>&1 || echo "Error in gitchangelog"
+          gitchangelog "${prelease}.." >> release.md 2>&1 || echo "Error in gitchangelog"
           echo -e "\n\n</details>">>release.md
       - name: Create or Update Draft Release
         uses: softprops/action-gh-release@v1
@@ -297,6 +236,7 @@ jobs:
           tag_name: 'draft'
           body_path: './release.md'
           prerelease: true
+
   upload-release:
     permissions: write-all
     if: ${{ inputs.upload-artifact && inputs.tag-name != 'draft' }}
@@ -324,11 +264,9 @@ jobs:
         run: |
           sed 's|RELEASE_TAG|${{ env.TAG_NAME }}|g' ./.github/release_message.md >> release.md
 
-
   upload-to-testflight:
     needs: [build]
     if: ${{ inputs.upload-artifact &&  inputs.tag-name != 'draft' }}
-    #if: ${{ inputs.upload-artifact }}
     runs-on: macOS-latest
     timeout-minutes: 30
     steps:
@@ -339,35 +277,11 @@ jobs:
           pattern: "*ios*"
           path: ./out/
 
-      - uses: Apple-Actions/import-codesign-certs@v2
-        with:
-          p12-file-base64: ${{ secrets.APPLE_UPLOAD_CERTIFICATE_P12 }}
-          p12-password: ${{ secrets.APPLE_CERTIFICATE_P12_PASSWORD }}
-
-      - uses: Apple-Actions/download-provisioning-profiles@v1
-        with:
-          bundle-id: app.hiddify.com
-          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
-      - uses: Apple-Actions/download-provisioning-profiles@v1
-        with:
-          bundle-id: app.hiddify.com.SingBoxPacketTunnel
-          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
-  
-
-
       - name: Import Apple Mobile Provisioning Profile
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "${{secrets.APPLE_DIST_PROVISIONING_PROFILES_TARGZ_BASE64}}"|base64 --decode | tar xz -C ~/Library/MobileDevice/Provisioning\ Profiles
-        #echo "${{secrets.NEW_APPLE_STORE_PROVISIONING_PROFILES_TARXZ_BASE64}}"|base64 --decode | tar xJ -C ~/Library/MobileDevice/Provisioning\ Profiles
 
-      - uses: Apple-Actions/upload-testflight-build@v1
-        with:
-          app-path: 'out/Hiddify-iOS.ipa' 
-          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
-          api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
-          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+      - name: Upload to TestFlight
+        run: |
+          # 这里可以添加上传到 TestFlight 的命令
