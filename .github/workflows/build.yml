@@ -67,7 +67,7 @@ jobs:
         env:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
-          make windows-release
+          flutter build windows
 
       - name: Copy to out Windows
         run: |
