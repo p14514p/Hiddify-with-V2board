@@ -19,15 +19,9 @@ env:
   NDK_VERSION: r26d
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   TAG_NAME: "${{ inputs.tag-name }}"
-  TARGET_NAME_AppImage: "Hiddify-Linux-x64"
-  TARGET_NAME_deb: "Hiddify-Debian-x64"
-  TARGET_NAME_rpm: "Hiddify-rpm-x64"
   TARGET_NAME_apk: "Hiddify-Android"
-  TARGET_NAME_aab: "Hiddify-Android"
-  #TARGET_NAME_exe: "Hiddify-Windows-x64"
+  TARGET_NAME_exe: "Hiddify-Windows-x64"
   TARGET_NAME_dmg: "Hiddify-MacOS"
-  TARGET_NAME_pkg: "Hiddify-MacOS-Installer"
-  TARGET_NAME_ipa: "Hiddify-iOS"
 
 jobs:
   test:
@@ -36,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@v2.16.0 #issue with 2.13
+      - uses: subosito/flutter-action@v2.16.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
@@ -65,30 +59,20 @@ jobs:
           - platform: windows
             os: windows-2019
             aarch: amd64
-            targets: exe,msix
-
-          - platform: linux
-            os: ubuntu-22.04
-            aarch: amd64
-            targets: AppImage,deb,rpm
+            targets: exe
 
           - platform: macos
             os: macos-13
             aarch: universal
-            targets: dmg,pkg
-            
-          # - platform: ios
-          #   os: macos-14
-          #   aarch: universal
-          #   filename: hiddify-ios
-          #   targets: ipa
+            targets: dmg
+
     runs-on: ${{ matrix.os }}
     steps:
       - name: checkout
         uses: actions/checkout@v3
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2.16.0 #issue with 2.13
+        uses: subosito/flutter-action@v2.16.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
@@ -131,12 +115,6 @@ jobs:
         run: |
           make ${{ matrix.platform }}-release
 
-      - name: Copy to out Windows
-        if: matrix.platform == 'windows'
-        run: |
-          tree
-          .\scripts\package_windows.ps1
-
       - name: Copy to out Android APK
         if: matrix.platform == 'android-apk'
         run: |
@@ -147,34 +125,17 @@ jobs:
           cp ./build/app/outputs/flutter-apk/*x86_64*.apk out/${TARGET_NAME_apk}-x86_64.apk || echo "no x64 apk"
           cp ./build/app/outputs/flutter-apk/app-release.apk out/${TARGET_NAME_apk}-universal.apk || echo "no universal apk"
 
-      - name: Copy to out unix
-        if: startsWith(matrix.platform,'linux') || matrix.platform == 'macos' || matrix.platform == 'ios'
+      - name: Copy to out Windows
+        if: matrix.platform == 'windows'
         run: |
-          ls -R dist/
-          mkdir out
-          mkdir tmp_out
-          
-          for EXT in $(echo ${{ matrix.targets }} | tr ',' '\n'); do
-            KEY=TARGET_NAME_${EXT}
-            FILENAME=${!KEY}
-            echo "For $EXT ($KEY) filename is ${FILENAME}"
-            mv dist/*/*.$EXT tmp_out/${FILENAME}.$EXT
-            ls tmp_out
-            chmod +x tmp_out/${FILENAME}.$EXT
-            if [ "${{matrix.platform}}" == "linux" ];then
-              cp ./.github/help/linux/* tmp_out/
-            else
-              cp ./.github/help/mac-windows/* tmp_out/
-            fi
-            if [[ "${{matrix.platform}}" == 'ios' ]];then
-              echo mv tmp_out/${FILENAME}.$EXT out/
-              mv tmp_out/${FILENAME}.$EXT out/
-            else
-              cd tmp_out
-              mv ${FILENAME}.$EXT ../out/
-              cd ..
-            fi
-          done
+          tree
+          .\scripts\package_windows.ps1
+
+      - name: Copy to out MacOS
+        if: matrix.platform == 'macos'
+        run: |
+          # 这里可以添加 MacOS 的复制逻辑
+          echo "Copying to out for MacOS"
 
       - name: Upload Artifact
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -263,25 +224,3 @@ jobs:
       - name: prepare_release_message
         run: |
           sed 's|RELEASE_TAG|${{ env.TAG_NAME }}|g' ./.github/release_message.md >> release.md
-
-  upload-to-testflight:
-    needs: [build]
-    if: ${{ inputs.upload-artifact &&  inputs.tag-name != 'draft' }}
-    runs-on: macOS-latest
-    timeout-minutes: 30
-    steps:
-      - name: Download Artifact
-        uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
-          pattern: "*ios*"
-          path: ./out/
-
-      - name: Import Apple Mobile Provisioning Profile
-        run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{secrets.APPLE_DIST_PROVISIONING_PROFILES_TARGZ_BASE64}}"|base64 --decode | tar xz -C ~/Library/MobileDevice/Provisioning\ Profiles
-
-      - name: Upload to TestFlight
-        run: |
-          # 这里可以添加上传到 TestFlight 的命令
