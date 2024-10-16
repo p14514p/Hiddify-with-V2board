@@ -68,6 +68,11 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           make windows-release
+  
+      - name: Copy to out Windows
+        run: |
+          tree
+          .\\scripts\\package_windows.ps1
           
       - name: Upload Artifact
         if: env.UPLOAD_ARTIFACT == 'true'
