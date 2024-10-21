@@ -56,9 +56,6 @@ Future<void> lazyBootstrap(
     // await HttpService.initialize();
     // print("Domain initialized successfully: ${HttpService.baseUrl}");
     // container.read(authProvider.notifier).state = false;
-    print("Initializing domain...");
-    await HttpService.initialize();
-    print("Domain initialized successfully: ${HttpService.baseUrl}");
   } catch (e) {
     // 如果初始化域名出错，设置为未登录状态
     print("Error during domain initialization: $e");
