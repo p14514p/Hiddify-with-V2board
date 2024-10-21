@@ -62,7 +62,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v1
         with:
-          java-version: '11'  # 根据需要选择合适的 Java 版本
+          java-version: '17'  # 根据需要选择合适的 Java 版本
           
       - name: Setup NDK
         if: startsWith(matrix.platform,'android')
