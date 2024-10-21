@@ -18,13 +18,6 @@ class PaymentService {
       "/api/v1/user/order/getPaymentMethod",
       headers: {'Authorization': accessToken},
     );
-  
-    // 检查 response['data'] 是否存在并且是一个列表
-    if (response.containsKey('data') && response['data'] is List) {
-      // 过滤掉 null 值
-      return (response['data'] as List).where((item) => item != null).cast<dynamic>().toList();
-    } else {
-      throw Exception('Invalid response format or data is not a list');
-    }
+    return (response['data'] as List).cast<dynamic>();
   }
 }
