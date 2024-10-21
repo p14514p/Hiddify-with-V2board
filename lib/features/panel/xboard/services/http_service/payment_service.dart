@@ -18,6 +18,20 @@ class PaymentService {
       "/api/v1/user/order/getPaymentMethod",
       headers: {'Authorization': accessToken},
     );
-    return (response['data'] as List).cast<dynamic>();
+  
+    if (response == null || response['data'] == null) {
+      return [];
+    }
+  
+    return (response['data'] as List).map((paymentMethod) {
+      return {
+        "id": paymentMethod['id'],
+        "name": paymentMethod['name'],
+        "payment": paymentMethod['payment'],
+        "icon": paymentMethod['icon'] ?? 'default_icon_url',  // 设置默认图标
+        "handling_fee_fixed": paymentMethod['handling_fee_fixed'] ?? 0.0,  // 设置默认的固定手续费
+        "handling_fee_percent": paymentMethod['handling_fee_percent'] ?? 0.0,  // 设置默认的百分比手续费
+      };
+    }).toList();
   }
 }
