@@ -177,17 +177,20 @@ jobs:
           name: macOS
           path: ./out
           retention-days: 1
-  # 新增的 iOS 构建作业
   build_ios:
     needs: test
     permissions: write-all
-    runs-on: macos-13
+    runs-on: macos-12  # 或者使用 macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
   
+      - name: Switch Xcode version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_12.4.app/Contents/Developer
+  
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2.16.0
+        uses: subosito/flutter-action@v2.13.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
@@ -197,16 +200,11 @@ jobs:
         run: |
           flutter clean
   
-      - name: Setup dependencies
+      - name: Reinstall iOS Dependencies
         run: |
-          make ios-install-dependencies
-  
-      - name: Check Runner.xcodeproj
-        run: |
-          if [ ! -f ios/Runner.xcodeproj/project.pbxproj ]; then
-            echo "Runner.xcodeproj is missing or damaged."
-            exit 1
-          fi
+          cd ios
+          rm -rf Pods Podfile.lock
+          pod install
   
       - name: Prepare for iOS
         run: |
