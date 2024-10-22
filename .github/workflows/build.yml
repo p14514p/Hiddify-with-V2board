@@ -177,16 +177,17 @@ jobs:
           name: macOS
           path: ./out
           retention-days: 1
+# 新增的 iOS 构建作业
   build_ios:
     needs: test
     permissions: write-all
-    runs-on: macos-12  # 或者使用 macos-latest
+    runs-on: macos-12
     steps:
       - name: Checkout
         uses: actions/checkout@v3
   
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2.13.0
+        uses: subosito/flutter-action@v2.16.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
@@ -195,6 +196,10 @@ jobs:
       - name: Clean Flutter Build
         run: |
           flutter clean
+  
+      - name: Get Flutter Packages
+        run: |
+          flutter pub get
   
       - name: Reinstall iOS Dependencies
         run: |
