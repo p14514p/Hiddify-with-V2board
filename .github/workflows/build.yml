@@ -139,3 +139,38 @@ jobs:
           name: windows
           path: ./out
           retention-days: 1
+  build_mac:
+    needs: test
+    permissions: write-all
+    runs-on: macos-13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2.16.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Prepare for macOS
+        run: |
+          make macos-prepare
+
+      - name: Build macOS
+        run: |
+          make macos-release
+
+      - name: Copy to out macOS
+        run: |
+          mkdir out
+          mv dist/*/*.dmg out/${TARGET_NAME_dmg}.dmg
+          mv dist/*/*.pkg out/${TARGET_NAME_pkg}.pkg
+      - name: Upload Artifact
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macOS
+          path: ./out
+          retention-days: 1
