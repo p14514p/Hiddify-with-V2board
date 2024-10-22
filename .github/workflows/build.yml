@@ -21,6 +21,8 @@ env:
   TAG_NAME: "${{ inputs.tag-name }}"
   TARGET_NAME_apk: "Hiddify-Android"
   TARGET_NAME_exe: "Hiddify-Windows-x64"
+  TARGET_NAME_dmg: "Hiddify-MacOS"
+  TARGET_NAME_pkg: "Hiddify-MacOS-Installer"
 
 jobs:
   test:
@@ -62,17 +64,8 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v1
         with:
-          java-version: '17'  # 根据需要选择合适的 Java 版本
+          java-version: '17'
           
-      - name: Setup NDK
-        if: startsWith(matrix.platform,'android')
-        uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: ${{ env.NDK_VERSION }}
-          add-to-path: true
-          link-to-sdk: true
-
       - name: Prepare for Android
         run: |
           make android-prepare
@@ -83,6 +76,7 @@ jobs:
           flutter pub get
           dart run build_runner build --delete-conflicting-outputs
           dart run slang
+
       - name: Build APK
         run: |
           flutter build apk --release
@@ -139,6 +133,7 @@ jobs:
           name: windows
           path: ./out
           retention-days: 1
+
   build_mac:
     needs: test
     permissions: write-all
@@ -173,6 +168,7 @@ jobs:
           mkdir out
           mv dist/*/*.dmg out/${TARGET_NAME_dmg}.dmg
           mv dist/*/*.pkg out/${TARGET_NAME_pkg}.pkg
+
       - name: Upload Artifact
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@v4
