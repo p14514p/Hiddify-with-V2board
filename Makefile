@@ -163,8 +163,9 @@ linux-release:
 macos-release:
 	flutter_distributor package --platform macos --targets dmg,pkg $(DISTRIBUTOR_ARGS)
 
-ios-release: #not tested
-	flutter_distributor package --platform ios --targets ipa --build-export-options-plist  ios/exportOptions.plist $(DISTRIBUTOR_ARGS)
+ios-release:
+	@echo "Building iOS release..."
+	flutter build ios --release --export-options-plist ios/exportOptions.plist || { echo "Flutter build failed"; exit 1; }
 
 android-libs:
 	@$(MKDIR) $(ANDROID_OUT) || echo Folder already exists. Skipping...
