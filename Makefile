@@ -165,8 +165,7 @@ macos-release:
 
 ios-release:
 	@echo "Building iOS release..."
-        flutter build ios --release -- 
-        --allow-provisioning-updates || { echo "Flutter build failed"; exit 1; }
+	flutter build ios --release -- --allow-provisioning-updates || { echo "Flutter build failed"; exit 1; }
 
 android-libs:
 	@$(MKDIR) $(ANDROID_OUT) || echo Folder already exists. Skipping...
