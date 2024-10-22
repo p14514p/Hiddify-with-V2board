@@ -176,4 +176,44 @@ jobs:
           name: macOS
           path: ./out
           retention-days: 1
+  # 新增的 iOS 构建作业
+  build_ios:
+    needs: test
+    permissions: write-all
+    runs-on: macos-13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2.16.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Setup dependencies
+        run: |
+          make ios-install-dependencies
+
+      - name: Prepare for iOS
+        run: |
+          make ios-prepare
+          tree
+
+      - name: Build iOS
+        run: |
+          make ios-release
+
+      - name: Copy to out iOS
+        run: |
+          mkdir out
+          mv dist/*/*.ipa out/${TARGET_NAME_ipa}.ipa
+
+      - name: Upload iOS Artifact
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS
+          path: ./out
+          retention-days: 1
