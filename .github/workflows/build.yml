@@ -134,7 +134,8 @@ jobs:
           path: ./out
           retention-days: 1
 
-  build_mac:
+  # 新增的 macOS 构建作业
+  build_macos:
     needs: test
     permissions: write-all
     runs-on: macos-13
@@ -149,29 +150,14 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '16'  # 或者您需要的版本
-
-      - name: Install appdmg
-        run: npm install -g appdmg
-
-      - name: Install Dependencies
+      - name: Setup dependencies
         run: |
-          flutter pub get
-          dart run build_runner build --delete-conflicting-outputs
-          dart run slang
-          
-      - name: Install flutter_distributor
-        run: dart pub global activate flutter_distributor
+          make macos-install-dependencies
 
-      - name: Add Dart to PATH
-        run: echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
-          
       - name: Prepare for macOS
         run: |
           make macos-prepare
+          tree
 
       - name: Build macOS
         run: |
@@ -183,10 +169,11 @@ jobs:
           mv dist/*/*.dmg out/${TARGET_NAME_dmg}.dmg
           mv dist/*/*.pkg out/${TARGET_NAME_pkg}.pkg
 
-      - name: Upload Artifact
+      - name: Upload macOS Artifact
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: macOS
           path: ./out
           retention-days: 1
+
