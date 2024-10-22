@@ -193,13 +193,13 @@ jobs:
           channel: 'stable'
           cache: true
   
-      - name: Setup dependencies
-        run: |
-          make ios-install-dependencies
-  
       - name: Clean Flutter Build
         run: |
           flutter clean
+  
+      - name: Setup dependencies
+        run: |
+          make ios-install-dependencies
   
       - name: Check Runner.xcodeproj
         run: |
