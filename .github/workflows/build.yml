@@ -215,6 +215,12 @@ jobs:
         run: |
           make ios-prepare
           tree
+          
+      - name: Cache CocoaPods
+        uses: actions/cache@v2
+        with:
+          path: Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('**/Podfile.lock') }}
   
       - name: Build iOS
         run: |
