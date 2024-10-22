@@ -215,7 +215,7 @@ build-macos-libs:
 	make -C libcore -f Makefile macos-universal
 
 build-ios-libs: 
-	rf -rf $(IOS_OUT)/Libcore.xcframework 
+	rm -rf $(IOS_OUT)/Libcore.xcframework 
 	make -C libcore -f Makefile ios  
 	mv $(BINDIR)/Libcore.xcframework $(IOS_OUT)/Libcore.xcframework
 
@@ -226,8 +226,8 @@ release: # Create a new tag for release.
 
 ios-temp-prepare: 
 	make ios-prepare
-	flutter build ios-framework
+	flutter build ios-framework || { echo "Flutter build failed"; exit 1; }
 	cd ios
-	pod install
+	pod install || { echo "Pod install failed"; exit 1; }
 	
 
