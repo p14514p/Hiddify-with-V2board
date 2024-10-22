@@ -207,6 +207,10 @@ jobs:
           rm -rf Pods Podfile.lock
           pod install
   
+      - name: Install tree
+        run: |
+          brew install tree
+  
       - name: Prepare for iOS
         run: |
           make ios-prepare
