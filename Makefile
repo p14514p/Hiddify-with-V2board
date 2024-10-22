@@ -164,8 +164,8 @@ macos-release:
 	flutter_distributor package --platform macos --targets dmg,pkg $(DISTRIBUTOR_ARGS)
 
 ios-release:
-	@echo "Building iOS release..."
-	flutter build ios --release || { echo "Flutter build failed"; exit 1; }
+    @echo "Building iOS release..."
+    flutter build ios --release -- -allowProvisioningUpdates || { echo "Flutter build failed"; exit 1; }
 
 android-libs:
 	@$(MKDIR) $(ANDROID_OUT) || echo Folder already exists. Skipping...
