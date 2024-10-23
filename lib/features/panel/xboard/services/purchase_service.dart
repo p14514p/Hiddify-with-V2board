@@ -32,11 +32,6 @@ class PurchaseService {
   final OrderService _orderService = OrderService();
   final PaymentService _paymentService = PaymentService();
 
-  Future<Map<String, dynamic>?> createOrder(
-      int planId, String period, String accessToken) async {
-    return await _orderService.createOrder(accessToken, planId, period);
-  }
-
   Future<List<dynamic>> getPaymentMethods(String accessToken) async {
     final accessToken = await getToken(); // 确保获取到有效的 token
     if (accessToken == null) {
@@ -46,6 +41,13 @@ class PurchaseService {
     
     return await _paymentService.getPaymentMethods(accessToken);
   }
+  
+  Future<Map<String, dynamic>?> createOrder(
+      int planId, String period, String accessToken) async {
+    return await _orderService.createOrder(accessToken, planId, period);
+  }
+
+  
 
   Future<Map<String, dynamic>> submitOrder(
       String tradeNo, String method, String accessToken) async {
