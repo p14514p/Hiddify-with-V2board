@@ -12,7 +12,7 @@ class OrderService {
       headers: {'Authorization': accessToken},
     );
 
-    if (result["status"] == "success") {
+    if (result["data"] != null && result["data"].isNotEmpty) {
       final ordersJson = result["data"] as List;
       return ordersJson
           .map((json) => Order.fromJson(json as Map<String, dynamic>))
