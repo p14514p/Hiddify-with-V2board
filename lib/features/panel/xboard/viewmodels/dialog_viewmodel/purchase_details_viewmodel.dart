@@ -53,7 +53,7 @@ class PurchaseDetailsViewModel extends ChangeNotifier {
         accessToken,
       );
 
-      if (orderResponse != null && orderResponse['status'] == 'success') {
+      if (orderResponse != null ) {
         tradeNo = orderResponse['data']?.toString();
         if (kDebugMode) {
           print("订单创建成功 订单号$tradeNo");
