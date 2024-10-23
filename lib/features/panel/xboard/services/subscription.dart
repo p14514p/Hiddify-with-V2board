@@ -66,11 +66,11 @@ class Subscription {
             context,
             getSubscriptionLink == _subscriptionService.resetSubscriptionLink
                 ? t.userInfo.subscriptionResetSuccess
-                : "t.userInfo.subscriptionUpdateSuccess");
+                : "订阅更新成功");
       }
     } catch (e) {
       _showSnackbar(context,
-          "${getSubscriptionLink == _subscriptionService.resetSubscriptionLink ? t.userInfo.subscriptionResetError : "t.userInfo.subscriptionUpdateError"} $e");
+          "${getSubscriptionLink == _subscriptionService.resetSubscriptionLink ? t.userInfo.subscriptionResetError : "订阅更新失败"} $e");
     }
   }
 
